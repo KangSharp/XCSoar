@@ -282,26 +282,4 @@ jobs:
           asset_name: ${{ matrix.target_final }}-${{ matrix.target }}${{ matrix.target_ext }}
           asset_content_type: application/zip
 
-      - name: Deploy to Download server - testing
-        if: ${{ github.repository == 'XCSoar/XCSoar' && github.ref == 'refs/heads/master' }}
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.REPOSITORY_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
-          SOURCE: output/${{ matrix.target }}/${{ matrix.target_bin_path }}/${{ matrix.target_bin }}${{ matrix.target_ext }}
-          REMOTE_HOST: ${{ secrets.REPOSITORY_HOST }}
-          REMOTE_USER: ${{ secrets.REPOSITORY_SSH_USER }}
-          TARGET: ${{ secrets.REPOSITORY_REMOTE_PATH }}/testing/${{ matrix.target }}/
-          SCRIPT_BEFORE: mkdir -p ${{ secrets.REPOSITORY_REMOTE_PATH }}/testing/${{ matrix.target }}
-
-      - name: Deploy to Download server - release
-        if: ${{ github.repository == 'XCSoar/XCSoar' && startsWith(github.ref, 'refs/tags/v') && matrix.target_upload == true }}
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.REPOSITORY_SSH_KEY }}
-          ARGS: "-rltgoDzvO"
-          SOURCE: output/${{ matrix.target }}/${{ matrix.target_bin_path }}/${{ matrix.target_bin }}${{ matrix.target_ext }}
-          REMOTE_HOST: ${{ secrets.REPOSITORY_HOST }}
-          REMOTE_USER: ${{ secrets.REPOSITORY_SSH_USER }}
-          TARGET: ${{ secrets.REPOSITORY_REMOTE_PATH }}/releases/${{ needs.release.outputs.version }}/${{ matrix.target }}/
-          SCRIPT_BEFORE: mkdir -p ${{ secrets.REPOSITORY_REMOTE_PATH }}/releases/${{ needs.release.outputs.version }}/${{ matrix.target }}/
+   
