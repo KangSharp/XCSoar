@@ -98,22 +98,6 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            target: UNIX
-            target_bin: xcsoar_${{ needs.release.outputs.version }}_amd64
-            target_bin_path: ''
-            target_final: xcsoar_
-            target_ext: .deb
-            target_upload: true
-            target_container: debian:bookworm-slim
-          - os: ubuntu-22.04
-            target: KOBO
-            target_bin: KoboRoot
-            target_bin_path: ''
-            target_final: KoboRoot
-            target_ext: .tgz
-            target_upload: true
-            target_container: debian:bookworm-slim
-          - os: ubuntu-22.04
             target: ANDROID
             target_bin: XCSoar
             target_bin_path: bin
@@ -122,46 +106,6 @@ jobs:
             target_upload: true
             ndk: r26d
             target_container: debian:bookworm-slim
-          - os: ubuntu-22.04
-            target: WIN64
-            target_bin: XCSoar
-            target_bin_path: bin
-            target_final: XCSoar
-            target_ext: .exe
-            target_upload: true
-            target_container: debian:bookworm-slim
-          - os: ubuntu-22.04
-            target: PC
-            target_bin: XCSoar
-            target_bin_path: bin
-            target_final: XCSoar
-            target_ext: .exe
-            target_upload: true
-            target_container: debian:bookworm-slim
-          - os: macos-12
-            target: OSX64
-            target_bin: XCSoar
-            target_bin_path: bin
-            target_final: XCSoar
-            target_ext: ''
-            target_upload: false
-            target_container: ''
-          - os: macos-14
-            target: MACOS
-            target_bin: XCSoar
-            target_bin_path: bin
-            target_final: XCSoar
-            target_ext: ''
-            target_upload: false
-            target_container: ''
-          - os: macos-14
-            target: IOS64
-            target_bin: XCSoar
-            target_bin_path: bin
-            target_final: XCSoar
-            target_ext: ''
-            target_upload: false
-            target_container: ''
 
     steps:
       - name: Install checkout dependencies
