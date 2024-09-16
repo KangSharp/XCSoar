@@ -24,28 +24,40 @@
 #include "BackendComponents.hpp"
 
 void
-InputEvents::eventSounds(const TCHAR *misc)
+InputEvents::eventSounds(const char *misc)
 {
-  SoundSettings &settings = CommonInterface::SetUISettings().sound;
- // bool OldEnableSoundVario = EnableSoundVario;
+    SoundSettings &settings = CommonInterface::SetUISettings().sound;
+    bool enabled = settings.vario.enabled;
+    int volume = settings.vario.volume;  // Copy the initial volume
 
-  if (StringIsEqual(misc, _T("toggle")))
-    settings.vario.enabled = !settings.vario.enabled;
-  else if (StringIsEqual(misc, _T("on")))
-    settings.vario.enabled = true;
-  else if (StringIsEqual(misc, _T("off")))
-    settings.vario.enabled = false;
-  else if (StringIsEqual(misc, _T("show"))) {
-    if (settings.vario.enabled)
-      Message::AddMessage(_("Vario sounds on"));
-    else
-      Message::AddMessage(_("Vario sounds off"));
-    return;
-  }
-
-  AudioVarioGlue::Configure(settings.vario);
-  Profile::Set(ProfileKeys::SoundAudioVario, settings.vario.enabled);
+    if (StringIsEqual(misc, "toggle")) {
+        settings.vario.enabled = !enabled;
+    } else if (StringIsEqual(misc, "on")) {
+        settings.vario.enabled = true;
+    } else if (StringIsEqual(misc, "off")) {
+        settings.vario.enabled = false;
+    } else if (StringIsEqual(misc, "quieter")) {
+        // Reduce volume by half but cap at 0 instead of 1
+        settings.vario.volume = std::max(settings.vario.volume / 2, 0);  // Allow 0 volume
+    } else if (StringIsEqual(misc, "louder")) {
+        if (settings.vario.volume == 0) {
+            settings.vario.volume = 2;  // Start from 2 if volume is currently 0
+        } else {
+            settings.vario.volume *= 2;  // Double the volume
+        }
+        settings.vario.volume = std::min(static_cast<int>(settings.vario.volume), 100);  // Cap the volume at 100
+    } else if (StringIsEqual(misc, "show")) {
+        if (enabled) {
+            // Include the initial volume in the message
+            std::string message = "Vario sounds on, volume: " + std::to_string(volume);
+            Message::AddMessage(message.c_str());  // Convert std::string to C-style string
+        } else {
+            Message::AddMessage(_("Vario sounds off"));
+        }
+        return;
+    }
 }
+
 
 void
 InputEvents::eventSnailTrail(const TCHAR *misc)
@@ -366,10 +378,30 @@ InputEvents::eventOrientationCruise(const TCHAR *misc)
 	settings_map.cruise_orientation = MapOrientation::TARGET_UP;
   } else if (StringIsEqual(misc, _T("windup"))) {
 	settings_map.cruise_orientation = MapOrientation::WIND_UP;
+  } else if (StringIsEqual(misc, _T("toggle"))) {
+    // Toggle through all the map orientation modes
+    switch (settings_map.cruise_orientation) {
+      case MapOrientation::NORTH_UP:
+        settings_map.cruise_orientation = MapOrientation::TRACK_UP;
+        break;
+      case MapOrientation::TRACK_UP:
+        settings_map.cruise_orientation = MapOrientation::HEADING_UP;
+        break;
+      case MapOrientation::HEADING_UP:
+        settings_map.cruise_orientation = MapOrientation::TARGET_UP;
+        break;
+      case MapOrientation::TARGET_UP:
+        settings_map.cruise_orientation = MapOrientation::WIND_UP;
+        break;
+      case MapOrientation::WIND_UP:
+        settings_map.cruise_orientation = MapOrientation::NORTH_UP;
+        break;
+    }
   }
-  
+
   ActionInterface::SendMapSettings(true);  
 }
+
 
 void
 InputEvents::eventOrientationCircling(const TCHAR *misc)
