@@ -51,7 +51,7 @@ InputEvents::eventSounds(const TCHAR *misc)
     } else if (StringIsEqual(misc, _T("show"))) {
         // Show the status of vario sounds and include volume if enabled
         if (initialEnabled) {
-            std::tstring message = _T("Vario sounds on, volume: ") + std::to_tstring(initialVolume);
+            std::basic_string<TCHAR> message = _T("Vario sounds on, volume: ") + std::to_tstring(initialVolume);
             Message::AddMessage(message.c_str());
         } else {
             Message::AddMessage(_("Vario sounds off"));
