@@ -28,10 +28,7 @@ InputEvents::eventSounds(const TCHAR *misc)
 {
     SoundSettings &settings = CommonInterface::SetUISettings().sound;
 
-    // Store initial enabled state and volume
-    bool initialEnabled = settings.vario.enabled;
-    int initialVolume = settings.vario.volume;  // Assuming settings.vario.volume exists
-
+    // Handle toggling, enabling, or disabling sound
     if (StringIsEqual(misc, _T("toggle"))) {
         settings.vario.enabled = !settings.vario.enabled;
     } else if (StringIsEqual(misc, _T("on"))) {
@@ -49,22 +46,22 @@ InputEvents::eventSounds(const TCHAR *misc)
         }
         settings.vario.volume = std::min(static_cast<int>(settings.vario.volume), 100);  // Cap the volume at 100
     } else if (StringIsEqual(misc, _T("show"))) {
-        // Show the status of vario sounds and include volume if enabled
-        if (initialEnabled) {
-            std::basic_string<TCHAR> message = _T("Vario sounds on, volume: ") + std::to_tstring(initialVolume);
-            Message::AddMessage(message.c_str());
+        // Just show if vario sounds are enabled or not, no volume display for now
+        if (settings.vario.enabled) {
+            Message::AddMessage(_("Vario sounds on"));
         } else {
             Message::AddMessage(_("Vario sounds off"));
         }
         return;  // Exit after show, as no further action is needed
     }
 
-    // Apply changes to the sound configuration
+    // Apply the sound configuration changes
     AudioVarioGlue::Configure(settings.vario);
 
-    // Update the profile with the new enabled state
+    // Save the new enabled state to the profile
     Profile::Set(ProfileKeys::SoundAudioVario, settings.vario.enabled);
 }
+
 
 
 void
