@@ -24,38 +24,46 @@
 #include "BackendComponents.hpp"
 
 void
-InputEvents::eventSounds(const char *misc)
+InputEvents::eventSounds(const TCHAR *misc)
 {
     SoundSettings &settings = CommonInterface::SetUISettings().sound;
-    bool enabled = settings.vario.enabled;
-    int volume = settings.vario.volume;  // Copy the initial volume
 
-    if (StringIsEqual(misc, "toggle")) {
-        settings.vario.enabled = !enabled;
-    } else if (StringIsEqual(misc, "on")) {
+    // Store initial enabled state and volume
+    bool initialEnabled = settings.vario.enabled;
+    int initialVolume = settings.vario.volume;  // Assuming settings.vario.volume exists
+
+    if (StringIsEqual(misc, _T("toggle"))) {
+        settings.vario.enabled = !settings.vario.enabled;
+    } else if (StringIsEqual(misc, _T("on"))) {
         settings.vario.enabled = true;
-    } else if (StringIsEqual(misc, "off")) {
+    } else if (StringIsEqual(misc, _T("off"))) {
         settings.vario.enabled = false;
-    } else if (StringIsEqual(misc, "quieter")) {
-        // Reduce volume by half but cap at 0 instead of 1
-        settings.vario.volume = std::max(settings.vario.volume / 2, 0);  // Allow 0 volume
-    } else if (StringIsEqual(misc, "louder")) {
+    } else if (StringIsEqual(misc, _T("quieter"))) {
+        // Reduce volume by half, allowing it to reach 0
+        settings.vario.volume = std::max(settings.vario.volume / 2, 0);
+    } else if (StringIsEqual(misc, _T("louder"))) {
         if (settings.vario.volume == 0) {
             settings.vario.volume = 2;  // Start from 2 if volume is currently 0
         } else {
             settings.vario.volume *= 2;  // Double the volume
         }
         settings.vario.volume = std::min(static_cast<int>(settings.vario.volume), 100);  // Cap the volume at 100
-    } else if (StringIsEqual(misc, "show")) {
-        if (enabled) {
-            // Include the initial volume in the message
-            std::string message = "Vario sounds on, volume: " + std::to_string(volume);
-            Message::AddMessage(message.c_str());  // Convert std::string to C-style string
+    } else if (StringIsEqual(misc, _T("show"))) {
+        // Show the status of vario sounds and include volume if enabled
+        if (initialEnabled) {
+            std::tstring message = _T("Vario sounds on, volume: ") + std::to_tstring(initialVolume);
+            Message::AddMessage(message.c_str());
         } else {
             Message::AddMessage(_("Vario sounds off"));
         }
-        return;
+        return;  // Exit after show, as no further action is needed
     }
+
+    // Apply changes to the sound configuration
+    AudioVarioGlue::Configure(settings.vario);
+
+    // Update the profile with the new enabled state
+    Profile::Set(ProfileKeys::SoundAudioVario, settings.vario.enabled);
 }
 
 
