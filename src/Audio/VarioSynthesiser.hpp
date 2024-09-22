@@ -11,7 +11,7 @@
  */
 class VarioSynthesiser final : public ToneSynthesiser {
   /**
-   * This mutex protects all atttributes below.  It is locked
+   * This mutex protects all attributes below.  It is locked
    * automatically by all public methods.
    */
   Mutex mutex;
@@ -139,6 +139,21 @@ private:
   [[gnu::const]]
   unsigned VarioToFrequency(int ivario);
 
+  /**
+   * Smoothly fade out the tone over a defined number of samples to avoid
+   * clicking noise when transitioning to silence.
+   *
+   * @param buffer the buffer containing the tone samples
+   * @param n the number of samples to process
+   */
+  void FadeOut(int16_t *buffer, size_t n);
+
+  /**
+   * Check if the current vario value is in the "dead band" where no sound is emitted.
+   *
+   * @param ivario the current vario value [cm/s]
+   * @return true if in the dead band, false otherwise
+   */
   bool InDeadBand(int ivario) {
     return ivario >= min_dead && ivario <= max_dead;
   }
