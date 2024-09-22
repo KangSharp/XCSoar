@@ -12,6 +12,11 @@
  */
 static constexpr int min_vario = -500, max_vario = 500;
 
+/**
+ * Duration of the fade-out in samples (when silence is triggered)
+ */
+static constexpr unsigned fade_out_samples = 1000;
+
 unsigned
 VarioSynthesiser::VarioToFrequency(int ivario)
 {
@@ -78,14 +83,21 @@ VarioSynthesiser::UnsafeSetSilence()
   silence_count = 1;
 
   if (audible_remaining > 0)
-    /* quit the current period as early as possible; the method
-       Synthesise() will take care for finishing the current sine
-       wave to avoid clicking noise */
-    audible_remaining = 1;
+    /* fade out the current period smoothly */
+    audible_remaining = fade_out_samples;
 
   silence_remaining = 0;
 }
 
+void
+VarioSynthesiser::FadeOut(int16_t *buffer, size_t n)
+{
+  /* Generate a fade-out period over 'fade_out_samples' samples */
+  for (size_t i = 0; i < n; ++i) {
+    float fade_factor = 1.0f - (float)i / (float)fade_out_samples;
+    buffer[i] = (int16_t)(buffer[i] * fade_factor);  // apply fade
+  }
+}
 
 void
 VarioSynthesiser::Synthesise(int16_t *buffer, size_t n)
@@ -107,17 +119,21 @@ VarioSynthesiser::Synthesise(int16_t *buffer, size_t n)
       unsigned o = silence_count > 0
         ? std::min(n, audible_remaining)
         : n;
+
       ToneSynthesiser::Synthesise(buffer, o);
+
+      if (audible_remaining <= fade_out_samples) {
+        /* apply fade-out during the last phase of the tone */
+        FadeOut(buffer, o);
+      }
+
       buffer += o;
       n -= o;
       audible_remaining -= o;
 
       if (audible_remaining == 0 && silence_remaining > 0) {
-        /* finish the current sine wave to avoid clicking noise */
-        audible_remaining = ToZero();
-        if (audible_remaining == 0)
-          /* finished, we can now emit a period of silence */
-          Restart();
+        /* finished fade-out, now we can emit a period of silence */
+        Restart();
       }
     } else if (silence_remaining > 0) {
       /* generate a period of silence (climbing) */
