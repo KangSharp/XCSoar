@@ -67,6 +67,8 @@ class VarioSynthesiser final : public ToneSynthesiser {
    */
   int min_dead, max_dead;
 
+  size_t fade_remaining;  // tracks how many fade-out samples are left
+
 public:
   explicit VarioSynthesiser(unsigned sample_rate)
     :ToneSynthesiser(sample_rate),
@@ -75,7 +77,8 @@ public:
      dead_band_enabled(false),
      min_frequency(200), zero_frequency(500), max_frequency(1500),
      min_period_ms(150), max_period_ms(600),
-     min_dead(-30), max_dead(10) {}
+     min_dead(-30), max_dead(10),
+     fade_remaining(0) {}
 
   /**
    * Update the vario value.  This calculates a new tone frequency and

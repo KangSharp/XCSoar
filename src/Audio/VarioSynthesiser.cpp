@@ -16,6 +16,8 @@ static constexpr int min_vario = -500, max_vario = 500;
  * Duration of the fade-out in samples (when silence is triggered)
  */
 static constexpr unsigned fade_out_samples = 1000;
+size_t fade_remaining = 0;  // tracks how many fade-out samples are left
+
 
 unsigned
 VarioSynthesiser::VarioToFrequency(int ivario)
@@ -76,55 +78,47 @@ VarioSynthesiser::SetSilence()
   UnsafeSetSilence();
 }
 
-void
-VarioSynthesiser::UnsafeSetSilence()
-{
+void VarioSynthesiser::UnsafeSetSilence() {
   audible_count = 0;
   silence_count = 1;
 
-  if (audible_remaining > 0)
-    /* fade out the current period smoothly */
-    audible_remaining = fade_out_samples;
+  if (audible_remaining > 0) {
+    // set fade_remaining to the total fade duration
+    fade_remaining = fade_out_samples;
+    audible_remaining = fade_out_samples;  // ensure the fade-out can complete
+  }
 
   silence_remaining = 0;
 }
 
-void
-VarioSynthesiser::FadeOut(int16_t *buffer, size_t n)
-{
-  /* Generate a fade-out period over 'fade_out_samples' samples */
-  for (size_t i = 0; i < n; ++i) {
-    float fade_factor = 1.0f - (float)i / (float)fade_out_samples;
+void VarioSynthesiser::FadeOut(int16_t *buffer, size_t n) {
+  // Apply fade-out if fade_remaining is non-zero
+  for (size_t i = 0; i < n && fade_remaining > 0; ++i) {
+    float fade_factor = 1.0f - (float)(fade_out_samples - fade_remaining) / (float)fade_out_samples;
     buffer[i] = (int16_t)(buffer[i] * fade_factor);  // apply fade
+    fade_remaining--;  // decrement fade_remaining
   }
 }
 
-void
-VarioSynthesiser::Synthesise(int16_t *buffer, size_t n)
-{
+void VarioSynthesiser::Synthesise(int16_t *buffer, size_t n) {
   const std::lock_guard lock{mutex};
 
   assert(audible_count > 0 || silence_count > 0);
 
   if (silence_count == 0) {
-    /* magic value for "continuous tone" */
     ToneSynthesiser::Synthesise(buffer, n);
     return;
   }
 
   while (n > 0) {
     if (audible_remaining > 0) {
-      /* generate a period of audible tone */
-
-      unsigned o = silence_count > 0
-        ? std::min(n, audible_remaining)
-        : n;
-
+      // generate a period of audible tone
+      unsigned o = silence_count > 0 ? std::min(n, audible_remaining) : n;
       ToneSynthesiser::Synthesise(buffer, o);
 
+      // Apply fade-out if we are close to the end of the tone
       if (audible_remaining <= fade_out_samples) {
-        /* apply fade-out during the last phase of the tone */
-        FadeOut(buffer, o);
+        FadeOut(buffer, o);  // now uses fade_remaining
       }
 
       buffer += o;
@@ -132,23 +126,17 @@ VarioSynthesiser::Synthesise(int16_t *buffer, size_t n)
       audible_remaining -= o;
 
       if (audible_remaining == 0 && silence_remaining > 0) {
-        /* finished fade-out, now we can emit a period of silence */
-        Restart();
+        Restart();  // start silence period
       }
     } else if (silence_remaining > 0) {
-      /* generate a period of silence (climbing) */
-
-      unsigned o = audible_count > 0
-        ? std::min(n, silence_remaining)
-        : n;
-      /* the "silence" PCM sample value is zero */
-      std::fill_n(buffer, o, 0);
+      // generate a period of silence
+      unsigned o = audible_count > 0 ? std::min(n, silence_remaining) : n;
+      std::fill_n(buffer, o, 0);  // fill buffer with silence (zeroes)
       buffer += o;
       n -= o;
       silence_remaining -= o;
     } else {
-      /* period finished, begin next one */
-
+      // period finished, begin next one
       audible_remaining = audible_count;
       silence_remaining = silence_count;
     }
